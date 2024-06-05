@@ -1,6 +1,6 @@
-<h1> the Maze Game</h1>
+<h1> The Maze Game</h1>
 
-### this project is still under development
+### This project is still under development
 
 ### Technologies involved
 - SDL2 (simple directmedia layer) : implemented to create windows
