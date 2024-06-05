@@ -1,4 +1,4 @@
-<h1 style="text- align: center;">The Maze Game</h1>
+<h1 align:"center">The Maze Game</h1>
 
 ### This project is under development
 
