@@ -1,4 +1,4 @@
-#include "../dependscies/header.h"
+#include "../dependencies/header.h"
 
 /**
 * main - entry point
@@ -11,7 +11,7 @@ int main(void)
 	if (init_instance(&instance) != 0)
 		return (1);
 	/*each loop represents a frame*/
-	while (True)
+	while (SDL_TRUE)
 	{
 		SDL_SetRenderDrawColor(instance.renderer, 0, 0, 0, 0);
 		/*clear the renderer*/
