@@ -24,11 +24,11 @@ int init_instance(SDL_Instance *instance)
 	}
 	/*Creates a new Renderer instance linked to the window*/
 	instance->renderer = SDL_CreateRenderer(instance->window, -1,\
-		SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTASYNC);
+		SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
 	if (instance->renderer == NULL)
 	{
 		SDL_DestroyWindow(instance->window);
-		fprintf(stderr, "SDL_CreatrRenderer Error: %s\n", SDL_GetError());
+		fprintf(stderr, "SDL_CreateRenderer Error: %s\n", SDL_GetError());
 		SDL_Quit();
 		return (1);
 	}
