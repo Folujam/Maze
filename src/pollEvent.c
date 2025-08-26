@@ -60,6 +60,21 @@ int poll_events(void)
                     planeX = planeX * cos(rotSpeed) - planeY * sin(rotSpeed);
                     planeY = oldPlaneX * sin(rotSpeed) + planeY * cos(rotSpeed);
                 }
+				else if (key.keysym.scancode == SDL_SCANCODE_Q) // strafe left
+				{
+					if (worldMap[(int)(posX - planeX * moveSpeed)][(int)posY] == 0)
+						posX -= planeX * moveSpeed;
+					if (worldMap[(int)posX][(int)(posY - planeY * moveSpeed)] == 0)
+						posY -= planeY * moveSpeed;
+				}
+				else if (key.keysym.scancode == SDL_SCANCODE_E) // strafe right
+				{
+					if (worldMap[(int)(posX + planeX * moveSpeed)][(int)posY] == 0)
+						posX += planeX * moveSpeed;
+					if (worldMap[(int)posX][(int)(posY + planeY * moveSpeed)] == 0)
+						posY += planeY * moveSpeed;
+				}
+
 
 				break;
 		}
