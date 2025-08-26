@@ -43,22 +43,22 @@ int poll_events(void)
                 if (key.keysym.scancode == SDL_SCANCODE_A)
                 {
                     double oldDirX = dirX;
-                    dirX = dirX * cos(rotSpeed) - dirY * sin(rotSpeed);
-                    dirY = oldDirX * sin(rotSpeed) + dirY * cos(rotSpeed);
+                    dirX = dirX * cos(-rotSpeed) - dirY * sin(-rotSpeed);
+                    dirY = oldDirX * sin(-rotSpeed) + dirY * cos(-rotSpeed);
                     double oldPlaneX = planeX;
-                    planeX = planeX * cos(rotSpeed) - planeY * sin(rotSpeed);
-                    planeY = oldPlaneX * sin(rotSpeed) + planeY * cos(rotSpeed);
+                    planeX = planeX * cos(-rotSpeed) - planeY * sin(-rotSpeed);
+                    planeY = oldPlaneX * sin(-rotSpeed) + planeY * cos(-rotSpeed);
                 }
 
                 // Rotate Right (D)
                 if (key.keysym.scancode == SDL_SCANCODE_D)
                 {
                     double oldDirX = dirX;
-                    dirX = dirX * cos(-rotSpeed) - dirY * sin(-rotSpeed);
-                    dirY = oldDirX * sin(-rotSpeed) + dirY * cos(-rotSpeed);
+                    dirX = dirX * cos(rotSpeed) - dirY * sin(rotSpeed);
+                    dirY = oldDirX * sin(rotSpeed) + dirY * cos(rotSpeed);
                     double oldPlaneX = planeX;
-                    planeX = planeX * cos(-rotSpeed) - planeY * sin(-rotSpeed);
-                    planeY = oldPlaneX * sin(-rotSpeed) + planeY * cos(-rotSpeed);
+                    planeX = planeX * cos(rotSpeed) - planeY * sin(rotSpeed);
+                    planeY = oldPlaneX * sin(rotSpeed) + planeY * cos(rotSpeed);
                 }
 
 				break;
