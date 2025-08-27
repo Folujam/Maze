@@ -3,8 +3,8 @@
 ### This project is under development
 
 ### Technologies involved
-- SDL2 (simple directmedia layer) : implemented to create windows
-- Raycasting
+- SDL2 (simple directmedia layer) : implemented create window
+- Raycasting : world, minimap, movement(left, right, up, down, strafing)
 
 
 ### HOW TO USE
