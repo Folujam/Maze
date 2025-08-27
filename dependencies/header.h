@@ -7,6 +7,11 @@
 
 #define MAP_WIDTH 24
 #define MAP_HEIGHT 24
+#define MINI_CELL_SIZE 4
+#define MINI_MAP_WIDTH (MAP_WIDTH * MINI_CELL_SIZE)
+#define MINI_MAP_HEIGHT (MAP_HEIGHT * MINI_CELL_SIZE)
+#define MINI_MAP_PADDING 10
+
 
 /**
 * struct SDL_instance- struct to hold window && renderer
