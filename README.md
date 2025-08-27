@@ -11,5 +11,6 @@
 <p>clone to local</p>
 <p>install the SDL2 lib</p>
 <p>nav to Maze/src/</p>
-- gcc main.c create_instance.c pollEvent.c raycaster.c -lSDL2 -lm -o maze
-<p>paste and run ./maze</p>
+ paste
+ `gcc main.c create_instance.c pollEvent.c raycaster.c -lSDL2 -lm -o maze`
+<p>run ./maze</p>
