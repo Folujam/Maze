@@ -8,8 +8,8 @@
 
 
 ### HOW TO USE
-clone to local
-install the SDL2 lib
-nav to Maze/src/
+<p>clone to local</p>
+<p>install the SDL2 lib</p>
+<p>nav to Maze/src/</p>
 - gcc main.c create_instance.c pollEvent.c raycaster.c -lSDL2 -lm -o maze
-paste and run ./maze
+<p>paste and run ./maze</p>
