@@ -1,10 +1,10 @@
 #include "../dependencies/header.h"
 
-double posX = 3.5, posY = 3.5;  // Player position
-double dirX = 1, dirY = 0;   // Player direction (left lookin)
+double posX = 3, posY = 3;  // Player position
+double dirX = 0.5, dirY = 0;   // Player direction (left lookin)
 double planeX = 0, planeY = 0.66; // 2D camera plane
-double moveSpeed = 0.05;    // Forward/backward step size
-double rotSpeed = 0.03;     // Rotation step size
+double moveSpeed = 0.07;    // Forward/backward step size
+double rotSpeed = 0.05;     // Rotation step size
 
 // World map
 int worldMap[MAP_WIDTH][MAP_HEIGHT] =
