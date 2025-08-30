@@ -53,10 +53,10 @@ int main(void)
 		SDL_RenderClear(instance.renderer);
 		if (poll_events() == 1)
 			break;
-
+    /*draw stuff on renderer*/
 		render_scene(&instance);
-		/*draw stuff on renderer*/
-		/*flush the renderer*/
+		
+    /*present the renderer*/
 		SDL_RenderPresent(instance.renderer);
 	}
 	SDL_DestroyRenderer(instance.renderer);
