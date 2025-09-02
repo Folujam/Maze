@@ -46,6 +46,7 @@ brew install sdl2
 
 #### Windows:
 pacman -S mingw-w64-x86_64-SDL2
+```
 
 clone repo, compile in Maze/src/ (include these args -lSDL2 -lm ), then run  
 
