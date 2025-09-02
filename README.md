@@ -37,14 +37,17 @@ Before building the game, make sure SDL2 is installed.
 ```bash
 sudo apt update
 sudo apt install build-essential libsdl2-dev
-
+```
 #### On Fedora:
+```bash
 sudo dnf install SDL2-devel gcc make
-
+```
 #### On macOS:
+```bash
 brew install sdl2
-
+```
 #### Windows:
+```bash
 pacman -S mingw-w64-x86_64-SDL2
 ```
 
