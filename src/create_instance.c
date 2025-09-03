@@ -13,6 +13,12 @@ int init_instance(SDL_Instance *instance)
 		fprintf(stderr, "unable to initailize SDL: %s\n", SDL_GetError());
 		return (1);
 	}
+	/*init SDL_ttf*/
+	if (TTF_Init() != 0)
+	{
+    	fprintf(stderr, "Failed to init SDL_ttf: %s\n", TTF_GetError());
+    	return (1);
+	}
 	/*creates a new window instance*/
 	instance->window = SDL_CreateWindow("Maze Game", SDL_WINDOWPOS_CENTERED,\
 		SDL_WINDOWPOS_CENTERED, 1260, 720, 0);

@@ -4,68 +4,43 @@
 * poll_events - loops tru to finds what event occured and executes it
 * Return: int
 */
+
+
 int poll_events(void)
 {
-	SDL_Event event;
-	SDL_KeyboardEvent key;
-    int moved = 0;
+    SDL_Event event;
+    SDL_KeyboardEvent key;
 
-	while (SDL_PollEvent(&event))
-	{
-		switch (event.type)
-		{
-			case SDL_QUIT:
-				return (1);
-			case SDL_KEYDOWN:
-				key = event.key;
-				/*if esc pressed*/
-				if (key.keysym.scancode == SDL_SCANCODE_ESCAPE)
-					return (1);
+    while (SDL_PollEvent(&event))
+    {
+        switch (event.type)
+        {
+            case SDL_QUIT:
+                return 1;
 
-                /*DISALLOW MOVEMENT WHILE RED*/
-                int allowMove = can_player_move();
+            case SDL_KEYDOWN:
+                key = event.key;
 
-				// Forward (W)
-                if (key.keysym.scancode == SDL_SCANCODE_W && allowMove)
-                {
+                if (key.keysym.scancode == SDL_SCANCODE_ESCAPE)
+                    return 1;
+
+                /* Track if player actually moved this frame */
+                int moved = 0;
+
+                /* Forward (W) */
+                if (key.keysym.scancode == SDL_SCANCODE_W) {
                     double nx = posX + dirX * moveSpeed;
                     double ny = posY + dirY * moveSpeed;
-                    if (nx >= 0 && nx < MAP_WIDTH && worldMap[(int)nx][(int)posY] == 0) 
-                        posX = nx;
-                    if (ny >= 0 && ny < MAP_HEIGHT && worldMap[(int)posX][(int)ny] == 0)
-                        posY = ny;
-
-                    if (will_collide_with_obstacles(posX, posY))
-                    {
-                        posX -= dirX * moveSpeed;
-                        posY -= dirY * moveSpeed;
-                    }
-                }
-                if (moved) 
-                {
-                    check_traffic_violation(moved);
-                    check_passed_obstacles(posX, posY);
+                    if (worldMap[(int)nx][(int)posY] == 0) { posX = nx; moved = 1; }
+                    if (worldMap[(int)posX][(int)ny] == 0) { posY = ny; moved = 1; }
                 }
 
-                // Backward (S)
-                if (key.keysym.scancode == SDL_SCANCODE_S && allowMove) 
-                {
+                /* Backward (S) */
+                if (key.keysym.scancode == SDL_SCANCODE_S) {
                     double nx = posX - dirX * moveSpeed;
                     double ny = posY - dirY * moveSpeed;
-                    if (nx >= 0 && nx < MAP_WIDTH && worldMap[(int)nx][(int)posY] == 0)
-                        posX = nx;
-                    if (ny >= 0 && ny < MAP_HEIGHT && worldMap[(int)posX][(int)ny] == 0)
-                        posY = ny;
-                    if (will_collide_with_obstacles(posX, posY))
-                    {
-                        posX += dirX * moveSpeed;
-                        posY += dirY * moveSpeed;
-                    }
-                }
-                if (moved) 
-                {
-                    check_traffic_violation(moved);
-                    check_passed_obstacles(posX, posY);
+                    if (worldMap[(int)nx][(int)posY] == 0) { posX = nx; moved = 1; }
+                    if (worldMap[(int)posX][(int)ny] == 0) { posY = ny; moved = 1; }
                 }
 
                 /* Rotate Left (A) */
@@ -78,11 +53,6 @@ int poll_events(void)
                     planeX = planeX * c - planeY * s;
                     planeY = oldPlaneX * s + planeY * c;
                 }
-                if (moved) 
-                {
-                    check_traffic_violation(moved);
-                    check_passed_obstacles(posX, posY);
-                }
 
                 /* Rotate Right (D) */
                 if (key.keysym.scancode == SDL_SCANCODE_D) {
@@ -94,55 +64,30 @@ int poll_events(void)
                     planeX = planeX * c - planeY * s;
                     planeY = oldPlaneX * s + planeY * c;
                 }
-                if (moved) 
-                {
-                    check_traffic_violation(moved);
-                    check_passed_obstacles(posX, posY);
-                }
 
                 /* Strafe Left (Q) */
-                if (key.keysym.scancode == SDL_SCANCODE_Q && allowMove)
-                {
+                if (key.keysym.scancode == SDL_SCANCODE_Q) {
                     double nx = posX - planeX * moveSpeed;
                     double ny = posY - planeY * moveSpeed;
-                    if (nx >= 0 && nx < MAP_WIDTH && worldMap[(int)nx][(int)posY] == 0)
-                        posX = nx;
-                    if (ny >= 0 && ny < MAP_HEIGHT && worldMap[(int)posX][(int)ny] == 0)
-                        posY = ny;
-                    if (will_collide_with_obstacles(posX, posY))
-                    {
-                        posX += planeX * moveSpeed;
-                        posY += planeY * moveSpeed;
-                    }
-                }
-                if (moved) 
-                {
-                    check_traffic_violation(moved);
-                    check_passed_obstacles(posX, posY);
+                    if (worldMap[(int)nx][(int)posY] == 0) { posX = nx; moved = 1; }
+                    if (worldMap[(int)posX][(int)ny] == 0) { posY = ny; moved = 1; }
                 }
 
                 /* Strafe Right (E) */
-                if (key.keysym.scancode == SDL_SCANCODE_E && allowMove) 
-                {
+                if (key.keysym.scancode == SDL_SCANCODE_E) {
                     double nx = posX + planeX * moveSpeed;
                     double ny = posY + planeY * moveSpeed;
-                    if (nx >= 0 && nx < MAP_WIDTH && worldMap[(int)nx][(int)posY] == 0)
-                        posX = nx;
-                    if (ny >= 0 && ny < MAP_HEIGHT && worldMap[(int)posX][(int)ny] == 0)
-                        posY = ny;
-                    if (will_collide_with_obstacles(posX, posY))
-                    {
-                        posX -= planeX * moveSpeed;
-                        posY -= planeY * moveSpeed;
-                    }
+                    if (worldMap[(int)nx][(int)posY] == 0) { posX = nx; moved = 1; }
+                    if (worldMap[(int)posX][(int)ny] == 0) { posY = ny; moved = 1; }
                 }
-                if (moved) 
-                {
-                    check_traffic_violation(moved);
-                    check_passed_obstacles(posX, posY);
+
+                /* Post-move hooks */
+                if (moved) {
+                    notify_player_moved();          /* –2 if red */
+                    try_collect_spirit(posX, posY); /* +3 on collection */
                 }
-				break;
-		}
-	}
-	return (0);
+                break;
+        }
+    }
+    return 0;
 }

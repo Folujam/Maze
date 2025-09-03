@@ -3,7 +3,10 @@
 
 #include <math.h>
 #include <SDL2/SDL.h>
+#include <SDL2/SDL_ttf.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
 
 /*constants*/
 #define MAP_WIDTH 24
@@ -13,18 +16,20 @@
 #define MINI_MAP_HEIGHT (MAP_HEIGHT * MINI_CELL_SIZE)
 #define MINI_MAP_PADDING 10
 /* traffic light */
-#define T_GREEN 4.0
-#define T_RED   3.0
+#define MAX_SPIRITS 32
 
-/* obstacles */
-#define MAX_OBS 16
+/* Traffic light timing (randomized between these ranges, seconds) */
+#define GREEN_MIN 3.0
+#define GREEN_MAX 6.0
+#define RED_MIN   2.0
+#define RED_MAX   4.0
+
+/* --- Spirit type --- */
 typedef struct {
-    double x, y;
-    double vx, vy; /* grid units per second */
-    double r;      /* radius in grid cells (e.g., 0.3) */
-} Obstacle;
-
-
+    double x, y;     /* position (map units) */
+    double vx, vy;   /* velocity */
+    int alive;       /* 1 = active, 0 = collected */
+} Spirit;
 
 /**
 * struct SDL_instance- struct to hold window && renderer
@@ -38,30 +43,37 @@ typedef struct SDL_instance
 	SDL_Renderer *renderer;
 } SDL_Instance;
 
-//global player	variable declarations (extern)
+/* -- global player	variable declarations (extern)-- */
 extern double posX, posY;
 extern double dirX, dirY;
 extern double planeX, planeY;
 extern double moveSpeed, rotSpeed;
 extern int playerScore;
 
-// Map declaration (extern)
+/*-- Map declaration (extern) -- */
 extern int worldMap[MAP_WIDTH][MAP_HEIGHT];
 
-// Function declarations (prototypes)
+
+/* --- Init/loop --- */
 int init_instance(SDL_Instance *instance);
 int poll_events(void);
 void render_scene(SDL_Instance *instance);
+void draw_minimap(SDL_Instance *instance);
 
-/* NEW game systems */
+/* --- Gameplay (spirits + traffic light) --- */
 void init_gameplay(void);
 void update_gameplay(double dt);
-int can_player_move(void);
-int will_collide_with_obstacles(double nx, double ny);
-int get_traffic_green(void);
-int get_obstacles(const Obstacle **out);
-void check_traffic_violation(int moved);
-void check_passed_obstacles(double px, double py);
+
+/* traffic light: movement always allowed; penalties handled on move */
+int get_traffic_green(void);        /* 1=green, 0=red */
+void notify_player_moved(void);     /* call once per player move (for red penalty) */
+
+/* spirits accessors */
+int  get_spirits(const Spirit **out);   /* returns count */
+void try_collect_spirit(double px, double py); /* collect if touching */
+
+/* HUD helpers (optional) */
+int  get_remaining_spirits(void);
 
 
 #endif

@@ -4,13 +4,23 @@ void render_scene(SDL_Instance *instance)
 {
     int w, h;
     SDL_GetRendererOutputSize(instance->renderer, &w, &h);
-	const Obstacle *oarr = NULL;
-	int oc = get_obstacles(&oarr);
-    // Clear once per frame (leave in main is also fine, but okay here)
-    // SDL_SetRenderDrawColor(instance->renderer, 0, 0, 0, 255);
-    // SDL_RenderClear(instance->renderer);
 
-    for (int x = 0; x < w; x++)
+    /* --- Sky (top half) --- */
+    SDL_Rect ceiling = {0, 0, w, h/2};
+    SDL_SetRenderDrawColor(instance->renderer, 135, 206, 235, 255); /* sky blue */
+    SDL_RenderFillRect(instance->renderer, &ceiling);
+
+    /* --- Brick floor (bottom half) --- */
+    SDL_Rect floor = {0, h/2, w, h/2};
+    SDL_SetRenderDrawColor(instance->renderer, 178, 34, 34, 255);   /* firebrick red */
+    SDL_RenderFillRect(instance->renderer, &floor);
+
+    /* --- Wall casting --- */
+    /* store per-column depth for sprite occlusion */
+    static double zbuf[4096]; /* enough for <= 4096 width */
+    if (w > (int)(sizeof(zbuf)/sizeof(zbuf[0]))) w = (int)(sizeof(zbuf)/sizeof(zbuf[0]));
+
+    for (int x = 0; x < w; ++x)
     {
         double cameraX = 2.0 * x / (double)w - 1.0;
         double rayDirX = dirX + planeX * cameraX;
@@ -21,14 +31,12 @@ void render_scene(SDL_Instance *instance)
 
         double deltaDistX = (rayDirX == 0.0) ? 1e30 : fabs(1.0 / rayDirX);
         double deltaDistY = (rayDirY == 0.0) ? 1e30 : fabs(1.0 / rayDirY);
-        double sideDistX, sideDistY, perpWallDist;
+        double sideDistX, sideDistY;
 
-        int stepX, stepY;
-        int hit = 0, side = 0;
+        int stepX, stepY, side = 0, hit = 0;
 
         if (rayDirX < 0) { stepX = -1; sideDistX = (posX - mapX) * deltaDistX; }
         else { stepX = 1; sideDistX = (mapX + 1.0 - posX) * deltaDistX; }
-
         if (rayDirY < 0) { stepY = -1; sideDistY = (posY - mapY) * deltaDistY; }
         else { stepY = 1; sideDistY = (mapY + 1.0 - posY) * deltaDistY; }
 
@@ -36,125 +44,97 @@ void render_scene(SDL_Instance *instance)
         {
             if (sideDistX < sideDistY) { sideDistX += deltaDistX; mapX += stepX; side = 0; }
             else { sideDistY += deltaDistY; mapY += stepY; side = 1; }
-
-            if (mapX < 0 || mapX >= MAP_WIDTH || mapY < 0 || mapY >= MAP_HEIGHT) {
-                hit = -1; /* out-of-bounds ray; drop this column */
-                break;
-            }
+            if (mapX < 0 || mapX >= MAP_WIDTH || mapY < 0 || mapY >= MAP_HEIGHT) { hit = -1; break; }
             if (worldMap[mapX][mapY] > 0) hit = 1;
         }
+        if (hit <= 0) continue;
 
-        if (hit <= 0) continue; /* skip drawing this column */
+        double perpWallDist = (side == 0)
+            ? (mapX - posX + (1 - stepX)/2.0) / rayDirX
+            : (mapY - posY + (1 - stepY)/2.0) / rayDirY;
+        if (perpWallDist <= 0) perpWallDist = 1e-6;
 
-        if (side == 0) perpWallDist = (mapX - posX + (1 - stepX) / 2.0) / rayDirX;
-        else           perpWallDist = (mapY - posY + (1 - stepY) / 2.0) / rayDirY;
+        zbuf[x] = perpWallDist;
 
-        if (perpWallDist <= 0) continue;
+        int lineH = (int)(h / perpWallDist);
+        int drawStart = -lineH/2 + h/2; if (drawStart < 0) drawStart = 0;
+        int drawEnd   =  lineH/2 + h/2; if (drawEnd >= h) drawEnd = h-1;
 
-        int lineHeight = (int)(h / perpWallDist);
-        int drawStart = -lineHeight / 2 + h / 2; if (drawStart < 0) drawStart = 0;
-        int drawEnd   =  lineHeight / 2 + h / 2; if (drawEnd >= h) drawEnd = h - 1;
-
-        SDL_SetRenderDrawColor(instance->renderer,
-            side ? 200 : 255, side ? 0 : 255, 0, 255);
+        /* WALL COLOR: cool grey; darker on Y sides */
+        Uint8 r = side ? 130 : 180;
+        Uint8 g = side ? 130 : 180;
+        Uint8 b = side ? 140 : 200;
+        SDL_SetRenderDrawColor(instance->renderer, r, g, b, 255);
         SDL_RenderDrawLine(instance->renderer, x, drawStart, x, drawEnd);
     }
 
-	/* draw obstacles as simple colored squares in 3D space */
-	for (int i = 0; i < oc; ++i) {
-		double spriteX = oarr[i].x - posX;
-		double spriteY = oarr[i].y - posY;
+    /* --- Render spirits as billboards (rects), occluded by walls --- */
+    const Spirit *arr = NULL; int cnt = get_spirits(&arr);
+    for (int i = 0; i < cnt; ++i) {
+        if (!arr[i].alive) continue;
 
-		/* inverse camera transform */
-		double invDet = 1.0 / (planeX * dirY - dirX * planeY);
-		double transformX = invDet * (dirY * spriteX - dirX * spriteY);
-		double transformY = invDet * (-planeY * spriteX + planeX * spriteY);
+        double sx = arr[i].x - posX;
+        double sy = arr[i].y - posY;
 
-		if (transformY <= 0) continue; /* behind player */
+        double invDet = 1.0 / (planeX * dirY - dirX * planeY);
+        double tx = invDet * (dirY * sx - dirX * sy);
+        double ty = invDet * (-planeY * sx + planeX * sy);
 
-		int screenX = (int)((w / 2) * (1 + transformX / transformY));
+        if (ty <= 0) continue;
 
-		int spriteHeight = abs((int)(h / transformY));
-		int drawStartY = -spriteHeight / 2 + h / 2; if (drawStartY < 0) drawStartY = 0;
-		int drawEndY   =  spriteHeight / 2 + h / 2; if (drawEndY >= h) drawEndY = h - 1;
+        int screenX = (int)((w / 2.0) * (1.0 + tx / ty));
+        int spriteH = abs((int)(h / ty));
+        int drawStartY = -spriteH / 2 + h / 2; if (drawStartY < 0) drawStartY = 0;
+        int drawEndY   =  spriteH / 2 + h / 2; if (drawEndY >= h) drawEndY = h - 1;
 
-		int spriteWidth = spriteHeight;
-		int drawStartX = -spriteWidth / 2 + screenX; if (drawStartX < 0) drawStartX = 0;
-		int drawEndX   =  spriteWidth / 2 + screenX; if (drawEndX >= w) drawEndX = w - 1;
+        int spriteW = spriteH;
+        int drawStartX = -spriteW / 2 + screenX; if (drawStartX < 0) drawStartX = 0;
+        int drawEndX   =  spriteW / 2 + screenX; if (drawEndX >= w) drawEndX = w - 1;
 
-		SDL_SetRenderDrawColor(instance->renderer, 255, 165, 0, 255);
-		for (int stripe = drawStartX; stripe < drawEndX; stripe++) {
-			SDL_RenderDrawLine(instance->renderer, stripe, drawStartY, stripe, drawEndY);
-		}
-	}
-
-    /* --- draw minimap ONCE per frame --- */
-    SDL_Rect miniBg = { MINI_MAP_PADDING, MINI_MAP_PADDING, MINI_MAP_WIDTH, MINI_MAP_HEIGHT };
-    SDL_SetRenderDrawColor(instance->renderer, 50, 50, 50, 255);
-    SDL_RenderFillRect(instance->renderer, &miniBg);
-
-    for (int my = 0; my < MAP_HEIGHT; ++my) {
-        for (int mx = 0; mx < MAP_WIDTH; ++mx) {
-            SDL_Rect cell = {
-                MINI_MAP_PADDING + mx * MINI_CELL_SIZE,
-                MINI_MAP_PADDING + my * MINI_CELL_SIZE,
-                MINI_CELL_SIZE, MINI_CELL_SIZE
-            };
-            int tile = worldMap[mx][my];
-            /* walls = red, open = green */
-            if (tile) SDL_SetRenderDrawColor(instance->renderer, 200, 0, 0, 255);
-            else      SDL_SetRenderDrawColor(instance->renderer, 0, 200, 0, 255);
-            SDL_RenderFillRect(instance->renderer, &cell);
+        for (int stripe = drawStartX; stripe < drawEndX; ++stripe) {
+            if (stripe < 0 || stripe >= w) continue;
+            if (ty < zbuf[stripe]) {
+                SDL_SetRenderDrawColor(instance->renderer, 255, 165, 0, 255); /* orange spirit */
+                SDL_RenderDrawLine(instance->renderer, stripe, drawStartY, stripe, drawEndY);
+            }
         }
     }
 
-    /* player dot */
-    SDL_Rect playerRect = {
-        MINI_MAP_PADDING + (int)(posX * MINI_CELL_SIZE) - 2,
-        MINI_MAP_PADDING + (int)(posY * MINI_CELL_SIZE) - 2,
-        4, 4
-    };
-    SDL_SetRenderDrawColor(instance->renderer, 0, 255, 0, 255);
-    SDL_RenderFillRect(instance->renderer, &playerRect);
+    /* --- Minimap (yours, already in separate file) --- */
+    draw_minimap(instance);  /* From your minimap.c. :contentReference[oaicite:2]{index=2} */
 
-    /* facing line */
-    int px = MINI_MAP_PADDING + (int)(posX * MINI_CELL_SIZE);
-    int py = MINI_MAP_PADDING + (int)(posY * MINI_CELL_SIZE);
-    int dx = px + (int)(dirX * MINI_CELL_SIZE * 4);
-    int dy = py + (int)(dirY * MINI_CELL_SIZE * 4);
-    SDL_SetRenderDrawColor(instance->renderer, 255, 255, 0, 255);
-    SDL_RenderDrawLine(instance->renderer, px, py, dx, dy);
+    /* --- HUD: traffic light, score, remaining spirits --- */
+    /* Traffic light box at top-right of minimap */
+    int hudSize = 28;
+    SDL_Rect tl = { MINI_MAP_PADDING + MINI_MAP_WIDTH + 12, MINI_MAP_PADDING, hudSize, hudSize };
+    if (get_traffic_green())
+        SDL_SetRenderDrawColor(instance->renderer, 0, 220, 0, 255);   /* green */
+    else
+        SDL_SetRenderDrawColor(instance->renderer, 220, 0, 0, 255);   /* red */
+    SDL_RenderFillRect(instance->renderer, &tl);
+    SDL_SetRenderDrawColor(instance->renderer, 255, 255, 255, 200);
+    SDL_RenderDrawRect(instance->renderer, &tl);
 
-    /* HUD (traffic light & obstacles will draw more here later) */
-	/* draw obstacles on minimap */
-	for (int i = 0; i < oc; ++i) {
-		SDL_Rect o = {
-			MINI_MAP_PADDING + (int)(oarr[i].x * MINI_CELL_SIZE) - 2,
-			MINI_MAP_PADDING + (int)(oarr[i].y * MINI_CELL_SIZE) - 2,
-			4, 4
-		};
-		SDL_SetRenderDrawColor(instance->renderer, 255, 165, 0, 255); /* orange */
-		SDL_RenderFillRect(instance->renderer, &o);
-	}
+    /* Score + remaining spirits text (SDL_ttf; fallback if font missing) */
+    TTF_Font *font = TTF_OpenFont("assets/FreeSans.ttf", 22);
+    char buf[96];
+    snprintf(buf, sizeof(buf), "Score: %d   Spirits: %d", playerScore, get_remaining_spirits());
 
-	/* traffic light HUD (top-right) */
-	int hudSize = 28;
-	SDL_Rect hud = { .x = (int)(MINI_MAP_PADDING + MINI_MAP_WIDTH + 12),
-					.y = MINI_MAP_PADDING,
-					.w = hudSize, .h = hudSize };
-	if (get_traffic_green())
-		SDL_SetRenderDrawColor(instance->renderer, 0, 220, 0, 255);
-	else
-		SDL_SetRenderDrawColor(instance->renderer, 220, 0, 0, 255);
-	SDL_RenderFillRect(instance->renderer, &hud);
-
-    /* draw a label box */
-    SDL_Rect hudFrame = { hud.x - 6, hud.y - 6, hud.w + 12, hud.h + 12 };
-    SDL_SetRenderDrawColor(instance->renderer, 255, 255, 255, 180);
-    SDL_RenderDrawRect(instance->renderer, &hudFrame);
-
-    /* score HUD (top-left corner) */
-    char buf[64];
-    sprintf(buf, "Score: %d", playerScore);
-    SDL_Color white = {255, 255, 255, 255};
+    if (font) {
+        SDL_Color white = {255,255,255,255};
+        SDL_Surface *surf = TTF_RenderText_Solid(font, buf, white);
+        if (surf) {
+            SDL_Texture *tex = SDL_CreateTextureFromSurface(instance->renderer, surf);
+            SDL_Rect dst = { MINI_MAP_PADDING, MINI_MAP_PADDING + MINI_MAP_HEIGHT + 10, surf->w, surf->h };
+            SDL_RenderCopy(instance->renderer, tex, NULL, &dst);
+            SDL_DestroyTexture(tex);
+            SDL_FreeSurface(surf);
+        }
+        TTF_CloseFont(font);
+    } else {
+        /* fallback: draw a simple white rectangle if font not found */
+        SDL_Rect bar = { MINI_MAP_PADDING, MINI_MAP_PADDING + MINI_MAP_HEIGHT + 10, 220, 20 };
+        SDL_SetRenderDrawColor(instance->renderer, 255,255,255,120);
+        SDL_RenderFillRect(instance->renderer, &bar);
+    }
 }

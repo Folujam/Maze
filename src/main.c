@@ -72,6 +72,7 @@ int main(void)
 	}
 	SDL_DestroyRenderer(instance.renderer);
 	SDL_DestroyWindow(instance.window);
-	SDL_Quit();
+	TTF_Quit();
+  SDL_Quit();
 	return (0);
 }

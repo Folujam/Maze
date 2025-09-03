@@ -1,128 +1,120 @@
 #include "../dependencies/header.h"
 
-extern int playerScore;
+/* Traffic light state */
+static int TL_green = 1;          /* start green */
+static double TL_timer = 0.0;
+static double TL_target = 0.0;
 
-static int trafficGreen = 1;
-static double trafficTimer = 0.0;
-static double trafficPhaseDur = T_GREEN;
+/* Spirits */
+static Spirit spirits[MAX_SPIRITS];
+static int spiritsCount = 0;
 
-static Obstacle obs[MAX_OBS];
-static int obsCount = 0;
+/* Forward */
+static double rand_range(double a, double b) {
+    double t = (double)rand() / (double)RAND_MAX;
+    return a + t * (b - a);
+}
+static void pick_next_phase(void) {
+    if (TL_green) TL_target = rand_range(GREEN_MIN, GREEN_MAX);
+    else          TL_target = rand_range(RED_MIN, RED_MAX);
+}
 
 void init_gameplay(void)
 {
-    /* start green */
-    trafficGreen = 1;
-    trafficTimer = 0.0;
-    trafficPhaseDur = T_GREEN;
+    srand((unsigned int)time(NULL));
 
-    /* spawn a few obstacles in open space */
-    obsCount = 5;
-    /* pick some safe starting spots */
-    double starts[5][4] = {
-        {8, 8,  0.7,  0.4},
-        {12, 6, -0.5,  0.6},
-        {6, 14, 0.8,  -0.3},
-        {16, 10,-0.6, -0.5},
-        {10, 16,0.5,   0.7}
-    };
-    for (int i = 0; i < obsCount; ++i) {
-        obs[i].x = starts[i][0];
-        obs[i].y = starts[i][1];
-        obs[i].vx = starts[i][2];
-        obs[i].vy = starts[i][3];
-        obs[i].r = 0.35;
+    /* traffic light */
+    TL_green = 1;
+    TL_timer = 0.0;
+    pick_next_phase();
+
+    /* place some spirits in open cells */
+    spiritsCount = 8; /* tune per stage */
+    int placed = 0;
+    for (int tries = 0; tries < 500 && placed < spiritsCount; ++tries) {
+        int x = 2 + rand() % (MAP_WIDTH - 4);
+        int y = 2 + rand() % (MAP_HEIGHT - 4);
+        if (worldMap[x][y] == 0) {
+            spirits[placed].x = x + 0.5;
+            spirits[placed].y = y + 0.5;
+            spirits[placed].vx = rand_range(-0.6, 0.6);  /* random X speed */
+            spirits[placed].vy = rand_range(-0.6, 0.6);  /* random Y speed */
+            spirits[placed].alive = 1;
+            placed++;
+        }
     }
-}
-
-static int is_wall(double x, double y)
-{
-    if (x < 0 || x >= MAP_WIDTH || y < 0 || y >= MAP_HEIGHT) return 1;
-    return worldMap[(int)x][(int)y] != 0;
+    spiritsCount = placed; /* in case fewer got placed */
 }
 
 void update_gameplay(double dt)
 {
-    /* traffic logic */
-    trafficTimer += dt;
-    if (trafficTimer >= trafficPhaseDur) {
-        trafficTimer = 0.0;
-        trafficGreen = !trafficGreen;
-        trafficPhaseDur = trafficGreen ? T_GREEN : T_RED;
+    /* advance traffic light */
+    TL_timer += dt;
+    if (TL_timer >= TL_target)
+    {
+        TL_timer = 0.0;
+        TL_green = !TL_green;
+        pick_next_phase();
     }
 
-    /* move obstacles */
-    for (int i = 0; i < obsCount; ++i)
+    for (int i = 0; i < spiritsCount; ++i)
     {
-        double nx = obs[i].x + obs[i].vx * dt;
-        double ny = obs[i].y + obs[i].vy * dt;
+        if (!spirits[i].alive) continue;
 
-        /* bounce on walls */
-        if (!is_wall(nx, obs[i].y))
-            obs[i].x = nx;
-        else 
-            obs[i].vx = -obs[i].vx;
-        if (!is_wall(obs[i].x, ny)) obs[i].y = ny; else obs[i].vy = -obs[i].vy;
+        double nx = spirits[i].x + spirits[i].vx * dt;
+        double ny = spirits[i].y + spirits[i].vy * dt;
 
-        /* simple obstacle-obstacle bounce (very rough) */
-        for (int j = i + 1; j < obsCount; ++j) 
+        /* bounce off walls */
+        if (nx < 1 || nx >= MAP_WIDTH-1 || worldMap[(int)nx][(int)spirits[i].y])
+            spirits[i].vx = -spirits[i].vx; 
+        else
+            spirits[i].x = nx;
+
+        if (ny < 1 || ny >= MAP_HEIGHT-1 || worldMap[(int)spirits[i].x][(int)ny])
         {
-            double dx = obs[i].x - obs[j].x;
-            double dy = obs[i].y - obs[j].y;
-            double rr = obs[i].r + obs[j].r;
-            if (dx*dx + dy*dy < rr*rr)
-            {
-                double tvx = obs[i].vx; obs[i].vx = obs[j].vx; obs[j].vx = tvx;
-                double tvy = obs[i].vy; obs[i].vy = obs[j].vy; obs[j].vy = tvy;
-            }
+            spirits[i].vy = -spirits[i].vy;
+        }
+        else
+        {
+            spirits[i].y = ny;
         }
     }
+
 }
 
-/* movement permission for player */
-int can_player_move(void)
+int get_traffic_green(void) { return TL_green; }
+
+void notify_player_moved(void)
 {
-    /*return trafficGreen ? 1 : 0;*/
-    return 1; /* always allow movement, but check collisions separately */
+    /* If player moves on RED, deduct 2 points */
+    if (!TL_green) playerScore -= 2;
 }
 
-/* new: check traffic light penalty */
-void check_traffic_violation(int moved)
+/* called after movement to see if a spirit is collected */
+void try_collect_spirit(double px, double py)
 {
-    if (moved && !get_traffic_green()) 
-    {
-        playerScore -= 2;
-    }
-}
-
-/* circle collision vs player point (treat player as point for simplicity) */
-int will_collide_with_obstacles(double nx, double ny)
-{
-    for (int i = 0; i < obsCount; ++i) {
-        double dx = nx - obs[i].x;
-        double dy = ny - obs[i].y;
-        /*if (dx*dx + dy*dy < (obs[i].r * obs[i].r)) return 1;*/
-        double dist2 = dx*dx + dy*dy;
-        if (dist2 < (obs[i].r * obs[i].r)) 
-        {
-            playerScore -= 2;
-            return 1;
-        }
-    }
-    return 0;
-}
-
-void check_passed_obstacles(double px, double py)
-{
-    for (int i = 0; i < obsCount; ++i) {
-        double dx = px - obs[i].x;
-        double dy = py - obs[i].y;
-        double dist2 = dx*dx + dy*dy;
-        if (dist2 > (obs[i].r * obs[i].r) * 6.0) { /* safely passed */
+    const double COLLECT_R2 = 0.25 * 0.25; /* 0.25 radius */
+    for (int i = 0; i < spiritsCount; ++i) {
+        if (!spirits[i].alive) continue;
+        double dx = px - spirits[i].x;
+        double dy = py - spirits[i].y;
+        if (dx*dx + dy*dy <= COLLECT_R2) {
+            spirits[i].alive = 0;
             playerScore += 3;
         }
     }
 }
-/* OPTIONAL: expose for rendering the HUD/minimap obstacles */
-int get_traffic_green(void) { return trafficGreen; }
-int get_obstacles(const Obstacle **out) { if (out) *out = obs; return obsCount; }
+
+int get_spirits(const Spirit **out)
+{
+    if (out) *out = spirits;
+    return spiritsCount;
+}
+
+int get_remaining_spirits(void)
+{
+    int left = 0;
+    for (int i = 0; i < spiritsCount; ++i)
+        if (spirits[i].alive) left++;
+    return left;
+}
