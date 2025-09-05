@@ -59,7 +59,8 @@ int main(void)
     
     Uint32 now = SDL_GetTicks();
     double dt = (now - last) / 1000.0;
-    if (dt > 0.05) dt = 0.05; /* clamp to avoid big jumps */
+    if (dt > 0.05) 
+      dt = 0.05; /* clamp to avoid big jumps */
     last = now;
 
     update_gameplay(dt); /* Update game logic with delta time */ /* NEW: traffic light + obstacles */

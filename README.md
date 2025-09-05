@@ -10,9 +10,8 @@ This project is a **learning experiment in computer graphics, collision detectio
 ## 🎮 Gameplay Concept  
 
 - **First-person view** powered by a Wolfenstein-like raycasting engine.  
-- **Obstacles**  
-  - Colliding deducts **–2 points**.  
-  - Passing safely rewards **+3 points**.  
+- **Obstacles{spirits}**  
+  - Colliding/collecting deducts **+3 points**.    
 - **Traffic lights**  
   - If you move while **green**, you’re safe.  
   - If you move while **red**, you lose **–2 points**.  
@@ -36,26 +35,41 @@ Before building the game, make sure SDL2 is installed.
 #### On Ubuntu / Debian:  
 ```bash
 sudo apt update
+```
+```bash
 sudo apt install build-essential libsdl2-dev
+```
+```bash
+sudo apt install libsdl2-ttf-dev
 ```
 #### On Fedora:
 ```bash
 sudo dnf install SDL2-devel gcc make
 ```
+```bash
+sudo dnf install SDL2_ttf-devel
+```
 #### On macOS:
 ```bash
 brew install sdl2
+```
+```bash
+brew install sdl2_ttf
 ```
 #### Windows:
 ```bash
 pacman -S mingw-w64-x86_64-SDL2
 ```
+```bash
+pacman -S mingw-w64-x86_64-SDL2_ttf
+```
 
-clone repo, compile in Maze/src/ (include these args -lSDL2 -lm ), then run  
+clone repo, compile in Maze/src/ ([gcc] *.c files include these flags -lSDL2 -lSDL2_ttf -lm ), then run.
+makefile has been include so simply make if make installed 
 
 ## ⚠️ Development Status  
 
-- ✅ Raycasting engine (walls, minimap, obstacles) implemented.  
+- ✅ Raycasting engine (walls, minimap, obstacles{spirits}) implemented.  
 - ✅ Basic gameplay rules (traffic lights, score system, collisions).  
 - 🔄 Obstacles visible in minimap **and** 3D.  
 - 🔄 Score tracking integrated.  

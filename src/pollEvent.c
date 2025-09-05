@@ -82,7 +82,8 @@ int poll_events(void)
                 }
 
                 /* Post-move hooks */
-                if (moved) {
+                if (moved)
+                {
                     notify_player_moved();          /* –2 if red */
                     try_collect_spirit(posX, posY); /* +3 on collection */
                 }

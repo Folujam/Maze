@@ -1,29 +1,61 @@
 #include "../dependencies/header.h"
-
-/* Traffic light state */
+/**
+ * Gameplay module: traffic light, spirits, scoring
+ * 
+ * Author: Firebr33da
+ * 
+ * This module handles the traffic light state (green/red),
+ * spirits (moving collectibles), and scoring.
+ * The player can move freely, but moving during red
+ * deducts points. Collecting spirits adds points.
+ * 
+ * The traffic light switches between green and red
+ * at random intervals within defined ranges.
+ */
+/*--------------- Traffic light state --------------------*/
 static int TL_green = 1;          /* start green */
-static double TL_timer = 0.0;
-static double TL_target = 0.0;
-
-/* Spirits */
-static Spirit spirits[MAX_SPIRITS];
-static int spiritsCount = 0;
+static double TL_timer = 0.0; /* elapsed in current phase */
+static double TL_target = 0.0; /* duration of current phase */
 
 /* Forward */
-static double rand_range(double a, double b) {
+static double rand_range(double a, double b)
+{
     double t = (double)rand() / (double)RAND_MAX;
     return a + t * (b - a);
 }
-static void pick_next_phase(void) {
-    if (TL_green) TL_target = rand_range(GREEN_MIN, GREEN_MAX);
-    else          TL_target = rand_range(RED_MIN, RED_MAX);
+
+static void pick_next_phase(void)
+{
+    if (TL_green) 
+        TL_target = rand_range(GREEN_MIN, GREEN_MAX);
+    else          
+        TL_target = rand_range(RED_MIN, RED_MAX);
 }
 
+int get_traffic_green(void) { return TL_green; }
+
+/* Called once **per actual player move**. If red, deduct 2 points. */
+void notify_player_moved(void)
+{
+    /* If player moves on RED, deduct 2 points */
+    if (!TL_green)
+        playerScore -= 2;
+}
+
+/* --------------------Spirits---------------------- */
+static Spirit spirits[MAX_SPIRITS];
+static int spiritsCount = 0;
+
+/**
+ * init_gameplay - initializes gameplay elements
+ * Return: void
+ */
+/* Called once **per actual player move**. If red, deduct 2 points. */
 void init_gameplay(void)
 {
     srand((unsigned int)time(NULL));
 
-    /* traffic light */
+     /* set initial traffic-light phase */
     TL_green = 1;
     TL_timer = 0.0;
     pick_next_phase();
@@ -34,7 +66,8 @@ void init_gameplay(void)
     for (int tries = 0; tries < 500 && placed < spiritsCount; ++tries) {
         int x = 2 + rand() % (MAP_WIDTH - 4);
         int y = 2 + rand() % (MAP_HEIGHT - 4);
-        if (worldMap[x][y] == 0) {
+        if (worldMap[x][y] == 0)
+        {
             spirits[placed].x = x + 0.5;
             spirits[placed].y = y + 0.5;
             spirits[placed].vx = rand_range(-0.6, 0.6);  /* random X speed */
@@ -49,6 +82,7 @@ void init_gameplay(void)
 void update_gameplay(double dt)
 {
     /* advance traffic light */
+    /*traffic light timer*/
     TL_timer += dt;
     if (TL_timer >= TL_target)
     {
@@ -59,7 +93,8 @@ void update_gameplay(double dt)
 
     for (int i = 0; i < spiritsCount; ++i)
     {
-        if (!spirits[i].alive) continue;
+        if (!spirits[i].alive) 
+            continue;
 
         double nx = spirits[i].x + spirits[i].vx * dt;
         double ny = spirits[i].y + spirits[i].vy * dt;
@@ -71,50 +106,49 @@ void update_gameplay(double dt)
             spirits[i].x = nx;
 
         if (ny < 1 || ny >= MAP_HEIGHT-1 || worldMap[(int)spirits[i].x][(int)ny])
-        {
             spirits[i].vy = -spirits[i].vy;
-        }
         else
-        {
             spirits[i].y = ny;
-        }
+    }
+    /* check if all collected */
+    if (get_remaining_spirits() == 0) {
+        init_gameplay(); // reset stage with new spirits + light
+        playerScore = 0; // reset collected (or keep cumulative, your choice)
     }
 
+
 }
 
-int get_traffic_green(void) { return TL_green; }
-
-void notify_player_moved(void)
-{
-    /* If player moves on RED, deduct 2 points */
-    if (!TL_green) playerScore -= 2;
-}
 
 /* called after movement to see if a spirit is collected */
 void try_collect_spirit(double px, double py)
 {
-    const double COLLECT_R2 = 0.25 * 0.25; /* 0.25 radius */
+    const double COLLECT_R2 = 0.50 * 0.50; /* 0.50 ( collection radius)*/
     for (int i = 0; i < spiritsCount; ++i) {
-        if (!spirits[i].alive) continue;
+        if (!spirits[i].alive)
+            continue;
         double dx = px - spirits[i].x;
         double dy = py - spirits[i].y;
-        if (dx*dx + dy*dy <= COLLECT_R2) {
-            spirits[i].alive = 0;
-            playerScore += 3;
+        if (dx*dx + dy*dy <= COLLECT_R2)
+        {
+            spirits[i].alive = 0; /* collected */
+            playerScore += 3; /* +3 points */
         }
     }
 }
 
 int get_spirits(const Spirit **out)
 {
-    if (out) *out = spirits;
-    return spiritsCount;
+    if (out) 
+        *out = spirits;
+        return spiritsCount;
 }
 
 int get_remaining_spirits(void)
 {
     int left = 0;
     for (int i = 0; i < spiritsCount; ++i)
-        if (spirits[i].alive) left++;
+        if (spirits[i].alive)
+            left++;
     return left;
 }

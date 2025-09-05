@@ -11,10 +11,10 @@
 /*constants*/
 #define MAP_WIDTH 24
 #define MAP_HEIGHT 24
-#define MINI_CELL_SIZE 4
+#define MINI_CELL_SIZE 6
 #define MINI_MAP_WIDTH (MAP_WIDTH * MINI_CELL_SIZE)
 #define MINI_MAP_HEIGHT (MAP_HEIGHT * MINI_CELL_SIZE)
-#define MINI_MAP_PADDING 10
+#define MINI_MAP_PADDING 8
 /* traffic light */
 #define MAX_SPIRITS 32
 
@@ -70,10 +70,8 @@ void notify_player_moved(void);     /* call once per player move (for red penalt
 
 /* spirits accessors */
 int  get_spirits(const Spirit **out);   /* returns count */
-void try_collect_spirit(double px, double py); /* collect if touching */
-
-/* HUD helpers (optional) */
-int  get_remaining_spirits(void);
+void try_collect_spirit(double px, double py); /* call after player moves */
+int  get_remaining_spirits(void);/* alive count */
 
 
 #endif

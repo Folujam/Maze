@@ -70,8 +70,10 @@ void render_scene(SDL_Instance *instance)
 
     /* --- Render spirits as billboards (rects), occluded by walls --- */
     const Spirit *arr = NULL; int cnt = get_spirits(&arr);
-    for (int i = 0; i < cnt; ++i) {
-        if (!arr[i].alive) continue;
+    for (int i = 0; i < cnt; ++i) 
+    {
+        if (!arr[i].alive)
+            continue;
 
         double sx = arr[i].x - posX;
         double sy = arr[i].y - posY;
@@ -80,7 +82,8 @@ void render_scene(SDL_Instance *instance)
         double tx = invDet * (dirY * sx - dirX * sy);
         double ty = invDet * (-planeY * sx + planeX * sy);
 
-        if (ty <= 0) continue;
+        if (ty <= 0)
+            continue;
 
         int screenX = (int)((w / 2.0) * (1.0 + tx / ty));
         int spriteH = abs((int)(h / ty));
@@ -92,7 +95,8 @@ void render_scene(SDL_Instance *instance)
         int drawEndX   =  spriteW / 2 + screenX; if (drawEndX >= w) drawEndX = w - 1;
 
         for (int stripe = drawStartX; stripe < drawEndX; ++stripe) {
-            if (stripe < 0 || stripe >= w) continue;
+            if (stripe < 0 || stripe >= w)
+                continue;
             if (ty < zbuf[stripe]) {
                 SDL_SetRenderDrawColor(instance->renderer, 255, 165, 0, 255); /* orange spirit */
                 SDL_RenderDrawLine(instance->renderer, stripe, drawStartY, stripe, drawEndY);
@@ -116,9 +120,12 @@ void render_scene(SDL_Instance *instance)
     SDL_RenderDrawRect(instance->renderer, &tl);
 
     /* Score + remaining spirits text (SDL_ttf; fallback if font missing) */
-    TTF_Font *font = TTF_OpenFont("assets/FreeSans.ttf", 22);
+    TTF_Font *font = TTF_OpenFont("assets/free-sans.ttf", 22);
     char buf[96];
-    snprintf(buf, sizeof(buf), "Score: %d   Spirits: %d", playerScore, get_remaining_spirits());
+    int collected = playerScore / 3;          // each spirit = 3 points
+    int target    = get_spirits(NULL);        // total placed this stage
+    snprintf(buf, sizeof(buf), "%d / %d", collected, target);
+
 
     if (font) {
         SDL_Color white = {255,255,255,255};
