@@ -16,7 +16,7 @@
 static int TL_green = 1;          /* start green */
 static double TL_timer = 0.0; /* elapsed in current phase */
 static double TL_target = 0.0; /* duration of current phase */
-
+static Spirit spirits[MAX_SPIRITS];
 /* Forward */
 static double rand_range(double a, double b)
 {
@@ -69,7 +69,7 @@ void notify_player_moved(void)
 }
 
 /* --------------------Spirits---------------------- */
-static Spirit spirits[MAX_SPIRITS];
+
 static int spiritsCount = 0;
 
 /**
