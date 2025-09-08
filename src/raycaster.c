@@ -12,13 +12,14 @@ void render_scene(SDL_Instance *instance)
 
     /* --- Brick floor (bottom half) --- */
     SDL_Rect floor = {0, h/2, w, h/2};
-    SDL_SetRenderDrawColor(instance->renderer, 178, 34, 34, 255);   /* firebrick red */
+    SDL_SetRenderDrawColor(instance->renderer, 34, 139, 34, 255);   /* forest green or firebrick red (178,34,34,255)*/
     SDL_RenderFillRect(instance->renderer, &floor);
 
     /* --- Wall casting --- */
     /* store per-column depth for sprite occlusion */
     static double zbuf[4096]; /* enough for <= 4096 width */
-    if (w > (int)(sizeof(zbuf)/sizeof(zbuf[0]))) w = (int)(sizeof(zbuf)/sizeof(zbuf[0]));
+    if (w > (int)(sizeof(zbuf)/sizeof(zbuf[0])))
+        w = (int)(sizeof(zbuf)/sizeof(zbuf[0]));
 
     for (int x = 0; x < w; ++x)
     {
@@ -69,7 +70,12 @@ void render_scene(SDL_Instance *instance)
     }
 
     /* --- Render spirits as billboards (rects), occluded by walls --- */
-    const Spirit *arr = NULL; int cnt = get_spirits(&arr);
+    const Spirit *arr = NULL;
+    int cnt = get_spirits(&arr);
+    if (cnt > 256)
+        cnt = 256; /* sanity limit */
+    if (cnt < 1)
+        return;
     for (int i = 0; i < cnt; ++i) 
     {
         if (!arr[i].alive)
@@ -109,7 +115,7 @@ void render_scene(SDL_Instance *instance)
 
     /* --- HUD: traffic light, score, remaining spirits --- */
     /* Traffic light box at top-right of minimap */
-    int hudSize = 28;
+    int hudSize = MINI_MAP_WIDTH / 2;
     SDL_Rect tl = { MINI_MAP_PADDING + MINI_MAP_WIDTH + 12, MINI_MAP_PADDING, hudSize, hudSize };
     if (get_traffic_green())
         SDL_SetRenderDrawColor(instance->renderer, 0, 220, 0, 255);   /* green */

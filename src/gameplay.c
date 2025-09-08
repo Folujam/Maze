@@ -39,7 +39,33 @@ void notify_player_moved(void)
 {
     /* If player moves on RED, deduct 2 points */
     if (!TL_green)
-        playerScore -= 2;
+        playerScore -= 1; /* -1 points per move on red */
+    if (playerScore < 0)   /*comment out if u want a challange */
+        playerScore = 0; /* clamp  ^^^^^^^^^^^*/
+
+        /* spawn a new spirit to compensate */
+        for (int tries = 0; tries < 200; ++tries)
+        {
+            int x = 2 + rand() % (MAP_WIDTH - 4);
+            int y = 2 + rand() % (MAP_HEIGHT - 4);
+            if (worldMap[x][y] == 0)
+            {
+                for (int i = 0; i < MAX_SPIRITS; ++i)
+                {
+                    if (!spirits[i].alive)
+                    {
+                        spirits[i].x = x + 0.5;
+                        spirits[i].y = y + 0.5;
+                        spirits[i].vx = rand_range(-0.6, 0.6);
+                        spirits[i].vy = rand_range(-0.6, 0.6);
+                        spirits[i].alive = 1;
+                        return;
+                    }
+                }
+            }
+        }
+    
+    
 }
 
 /* --------------------Spirits---------------------- */
