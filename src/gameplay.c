@@ -12,7 +12,9 @@
  * The traffic light switches between green and red
  * at random intervals within defined ranges.
  */
-/*--------------- Traffic light state --------------------*/
+int playerCollected = 0;   /* number of spirits collected so far */
+
+ /*--------------- Traffic light state --------------------*/
 static int TL_green = 1;          /* start green */
 static double TL_timer = 0.0; /* elapsed in current phase */
 static double TL_target = 0.0; /* duration of current phase */
@@ -35,37 +37,40 @@ static void pick_next_phase(void)
 int get_traffic_green(void) { return TL_green; }
 
 /* Called once **per actual player move**. If red, deduct 2 points. */
-void notify_player_moved(void)
-{
-    /* If player moves on RED, deduct 2 points */
-    if (!TL_green)
-        playerScore -= 1; /* -1 points per move on red */
-    if (playerScore < 0)   /*comment out if u want a challange */
-        playerScore = 0; /* clamp  ^^^^^^^^^^^*/
 
-        /* spawn a new spirit to compensate */
-        for (int tries = 0; tries < 200; ++tries)
-        {
-            int x = 2 + rand() % (MAP_WIDTH - 4);
-            int y = 2 + rand() % (MAP_HEIGHT - 4);
-            if (worldMap[x][y] == 0)
-            {
-                for (int i = 0; i < MAX_SPIRITS; ++i)
-                {
-                    if (!spirits[i].alive)
-                    {
-                        spirits[i].x = x + 0.5;
-                        spirits[i].y = y + 0.5;
-                        spirits[i].vx = rand_range(-0.6, 0.6);
-                        spirits[i].vy = rand_range(-0.6, 0.6);
-                        spirits[i].alive = 1;
-                        return;
-                    }
+/* helper: respawn a new spirit into a free slot */
+static void respawn_one_spirit(void)
+{
+    for (int i = 0; i < MAX_SPIRITS; i++) {
+        if (!spirits[i].alive) {
+            for (int tries = 0; tries < 200; ++tries) {
+                int x = 2 + rand() % (MAP_WIDTH - 4);
+                int y = 2 + rand() % (MAP_HEIGHT - 4);
+                if (worldMap[x][y] == 0) {
+                    spirits[i].x = x + 0.5;
+                    spirits[i].y = y + 0.5;
+                    spirits[i].vx = rand_range(-0.6, 0.6);
+                    spirits[i].vy = rand_range(-0.6, 0.6);
+                    spirits[i].alive = 1;
+                    return;
                 }
             }
         }
-    
-    
+    }
+}
+
+void notify_player_moved(void)
+{
+    if (!TL_green) {
+        if (playerCollected > 0) {
+            playerCollected -= 1;   /* lose one collected */
+            if (playerCollected < 0) playerCollected = 0;  /* never <0 */
+            playerScore -= 3;
+            if (playerScore < 0) playerScore = 0;
+
+            respawn_one_spirit();   /* compensate immediately */
+        }
+    }
 }
 
 /* --------------------Spirits---------------------- */
@@ -117,10 +122,11 @@ void update_gameplay(double dt)
         pick_next_phase();
     }
 
+    /*----spirits update-----*/
     for (int i = 0; i < spiritsCount; ++i)
     {
-        if (!spirits[i].alive) 
-            continue;
+        if (!spirits[i].alive)
+            continue; /*never touch dead spirits*/
 
         double nx = spirits[i].x + spirits[i].vx * dt;
         double ny = spirits[i].y + spirits[i].vy * dt;
@@ -136,6 +142,8 @@ void update_gameplay(double dt)
         else
             spirits[i].y = ny;
     }
+
+    
     /* check if all collected */
     if (get_remaining_spirits() == 0) {
         init_gameplay(); // reset stage with new spirits + light
@@ -149,16 +157,21 @@ void update_gameplay(double dt)
 /* called after movement to see if a spirit is collected */
 void try_collect_spirit(double px, double py)
 {
-    const double COLLECT_R2 = 0.50 * 0.50; /* 0.50 ( collection radius)*/
-    for (int i = 0; i < spiritsCount; ++i) {
+    const double COLLECT_R2 = 0.70 * 0.70; /* 0.50 ( collection radius)*/
+    for (int i = 0; i < spiritsCount; ++i)
+    {
         if (!spirits[i].alive)
             continue;
+        
         double dx = px - spirits[i].x;
         double dy = py - spirits[i].y;
         if (dx*dx + dy*dy <= COLLECT_R2)
         {
             spirits[i].alive = 0; /* collected */
+            playerCollected += 1;
             playerScore += 3; /* +3 points */
+            printf("Collected spirit %d at (%.2f, %.2f)\n", i, spirits[i].x, spirits[i].y);
+            return;
         }
     }
 }

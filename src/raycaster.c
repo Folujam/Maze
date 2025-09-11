@@ -3,6 +3,7 @@
 void render_scene(SDL_Instance *instance)
 {
     int w, h;
+    
     SDL_GetRendererOutputSize(instance->renderer, &w, &h);
 
     /* --- Sky (top half) --- */
@@ -110,6 +111,42 @@ void render_scene(SDL_Instance *instance)
         }
     }
 
+    /* --- Render ghosts if in stage 2 --- */
+        /* --- Ghosts: red billboards --- */
+    if (get_stage() == 2) {
+        int gc;
+        const Ghost *g = get_ghosts(&gc);
+        for (int i = 0; i < gc; i++) {
+            if (!g[i].active) continue;
+
+            /* camera-space transform */
+            double sx = g[i].x - posX;
+            double sy = g[i].y - posY;
+            double invDet = 1.0 / (planeX * dirY - dirX * planeY);
+            double tx = invDet * (dirY * sx - dirX * sy);
+            double ty = invDet * (-planeY * sx + planeX * sy);
+            if (ty <= 0) continue;
+
+            int screenX = (int)((w / 2.0) * (1.0 + tx / ty));
+            int spriteH = abs((int)(h / ty));
+            int drawStartY = -spriteH/2 + h/2; if (drawStartY < 0) drawStartY = 0;
+            int drawEndY   =  spriteH/2 + h/2; if (drawEndY >= h) drawEndY   = h-1;
+
+            int spriteW = spriteH;
+            int drawStartX = -spriteW/2 + screenX; if (drawStartX < 0) drawStartX = 0;
+            int drawEndX   =  spriteW/2 + screenX; if (drawEndX >= w) drawEndX   = w-1;
+
+            for (int stripe = drawStartX; stripe < drawEndX; ++stripe) {
+                if (stripe < 0 || stripe >= w) continue;
+                if (ty < zbuf[stripe]) {
+                    SDL_SetRenderDrawColor(instance->renderer, 255, 0, 0, 255); /* red */
+                    SDL_RenderDrawLine(instance->renderer, stripe, drawStartY, stripe, drawEndY);
+                }
+            }
+        }
+    }
+
+
     /* --- Minimap (yours, already in separate file) --- */
     draw_minimap(instance);  /* From your minimap.c. :contentReference[oaicite:2]{index=2} */
 
@@ -121,6 +158,7 @@ void render_scene(SDL_Instance *instance)
         SDL_SetRenderDrawColor(instance->renderer, 0, 220, 0, 255);   /* green */
     else
         SDL_SetRenderDrawColor(instance->renderer, 220, 0, 0, 255);   /* red */
+    
     SDL_RenderFillRect(instance->renderer, &tl);
     SDL_SetRenderDrawColor(instance->renderer, 255, 255, 255, 200);
     SDL_RenderDrawRect(instance->renderer, &tl);
@@ -128,14 +166,16 @@ void render_scene(SDL_Instance *instance)
     /* Score + remaining spirits text (SDL_ttf; fallback if font missing) */
     TTF_Font *font = TTF_OpenFont("assets/free-sans.ttf", 22);
     char buf[96];
-    int collected = playerScore / 3;          // each spirit = 3 points
-    int target    = get_spirits(NULL);        // total placed this stage
+    int collected = playerCollected;          /* use collected counter */
+    int target    = get_spirits(NULL);        /* spirits initially placed */
     snprintf(buf, sizeof(buf), "%d / %d", collected, target);
 
 
-    if (font) {
+    if (font)
+    {
         SDL_Color white = {255,255,255,255};
         SDL_Surface *surf = TTF_RenderText_Solid(font, buf, white);
+        
         if (surf) {
             SDL_Texture *tex = SDL_CreateTextureFromSurface(instance->renderer, surf);
             SDL_Rect dst = { MINI_MAP_PADDING, MINI_MAP_PADDING + MINI_MAP_HEIGHT + 10, surf->w, surf->h };
@@ -144,7 +184,9 @@ void render_scene(SDL_Instance *instance)
             SDL_FreeSurface(surf);
         }
         TTF_CloseFont(font);
-    } else {
+    } 
+    else
+    {
         /* fallback: draw a simple white rectangle if font not found */
         SDL_Rect bar = { MINI_MAP_PADDING, MINI_MAP_PADDING + MINI_MAP_HEIGHT + 10, 220, 20 };
         SDL_SetRenderDrawColor(instance->renderer, 255,255,255,120);

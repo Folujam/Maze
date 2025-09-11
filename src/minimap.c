@@ -16,7 +16,8 @@ void draw_minimap(SDL_Instance *instance)
     /* draws walls and floor */
     for (int y = 0; y < MAP_HEIGHT; ++y) 
     {
-        for (int x = 0; x < MAP_WIDTH; ++x) {
+        for (int x = 0; x < MAP_WIDTH; ++x)
+        {
             SDL_Rect cell = {
                 MINI_MAP_PADDING + x * MINI_CELL_SIZE,
                 MINI_MAP_PADDING + y * MINI_CELL_SIZE,
@@ -31,7 +32,8 @@ void draw_minimap(SDL_Instance *instance)
 
      /* draw alive spirits */
     const Spirit *arr = NULL; int cnt = get_spirits(&arr);
-    for (int i = 0; i < cnt; ++i) {
+    for (int i = 0; i < cnt; ++i)
+    {
         if (!arr[i].alive) continue;
         SDL_Rect spiritRect = {
             MINI_MAP_PADDING + (int)(arr[i].x * MINI_CELL_SIZE) - 2,
@@ -41,6 +43,25 @@ void draw_minimap(SDL_Instance *instance)
         SDL_SetRenderDrawColor(instance->renderer, 255, 165, 0, 255); // orange
         SDL_RenderFillRect(instance->renderer, &spiritRect);
     }
+        // draw ghosts (red)
+    if (get_stage() == 2)
+    {
+        int gc;
+        const Ghost *g = get_ghosts(&gc);
+        for (int i = 0; i < gc; i++)
+        {
+            if (!g[i].active)
+                continue;
+            SDL_Rect ghostRect = {
+                MINI_MAP_PADDING + (int)(g[i].x * MINI_CELL_SIZE) - 3,
+                MINI_MAP_PADDING + (int)(g[i].y * MINI_CELL_SIZE) - 3,
+                6, 6
+            };
+            SDL_SetRenderDrawColor(instance->renderer, 255, 0, 0, 255); /* red */
+            SDL_RenderFillRect(instance->renderer, &ghostRect);
+        }
+    }
+
 
     /* player dot */
     SDL_Rect playerRect = {

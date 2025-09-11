@@ -48,6 +48,7 @@ int main(void)
 	if (init_instance(&instance) != 0)
 		return (1);
   init_gameplay();
+  
 	/*each loop represents a frame*/
 	while (SDL_TRUE)
 	{
@@ -64,6 +65,9 @@ int main(void)
     last = now;
 
     update_gameplay(dt); /* Update game logic with delta time */ /* NEW: traffic light + obstacles */
+
+    if (get_stage() == 2)
+      update_ghosts(dt); /* NEW: stage 2 ghosts chasing player */
 
     /*render the scene*/
 		render_scene(&instance);
